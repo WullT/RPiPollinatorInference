@@ -1,0 +1,19 @@
+model:
+  local_yolov5_path: /home/pi/yolov5
+  weights_path: models/pollinator/pollinators_s.pt
+  class_names: ["honigbiene", "wildbiene","hummel","schwebfliege","fliege"]
+  confidence_threshold:  0.25
+  iou_threshold: 0.5
+  max_detections: 10
+  margin: 40
+  multi_label: true
+  multi_label_iou_threshold: 0.7
+  augment: false
+
+
+
+zmq:
+  host: localhost
+  port: 5557
+  request_timeout: 3000
+  request_retries: 5
