@@ -1,6 +1,6 @@
 model:
   local_yolov5_path: /home/pi/yolov5
-  weights_path: models/pollinator/pollinators_s.pt
+  weights_path: models/pollinators_s.pt
   class_names: ["honigbiene", "wildbiene","hummel","schwebfliege","fliege"]
   confidence_threshold:  0.25
   iou_threshold: 0.5
