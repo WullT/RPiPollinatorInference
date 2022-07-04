@@ -203,7 +203,7 @@ class MessageGenerator:
         }
         return message
 
-    def _generate_filename(self, format=".json"):
+    def generate_filename(self, format=".json"):
         filename = (
             self.node_id + "_" + self.timestamp.strftime("%Y-%m-%dT%H-%M-%SZ") + format
         )
@@ -222,7 +222,7 @@ class MessageGenerator:
         filepath = base_dir + self._generate_save_path()
         if not os.path.exists(filepath):
             os.makedirs(filepath)
-        with open(filepath + self._generate_filename(), "w") as f:
+        with open(filepath + self.generate_filename(), "w") as f:
             json.dump(self.generate_message(save_crop=save_crop), f)
         return True
 
@@ -243,9 +243,15 @@ class MQTTClient:
         else:
             self.auth = None
 
-    def publish(self, message):
+    def publish(self, message, filename=None, node_id=None, hostname=None):
         import paho.mqtt.publish as publish
-
+        topic = self.topic
+        if filename is not None:
+            topic.replace("${filename}", filename)
+        if node_id is not None:
+            topic.replace("${node_id}", node_id)
+        if hostname is not None:
+            topic.replace("${hostname}", hostname)
         tls_config = None
         if self.use_tls:
             tls_config = {
@@ -257,7 +263,7 @@ class MQTTClient:
             }
 
         publish.single(
-            self.topic,
+            topic,
             json.dumps(message),
             1,
             auth=self.auth,
@@ -277,12 +283,20 @@ class HTTPClient:
         else:
             self.auth = None
 
-    def send_message(self, message):
+    def send_message(self, message, filename=None, node_id=None, hostname=None):
         headers = {'Content-type': 'application/json'}
+        url = self.url
+        if filename is not None:
+            url.replace("${filename}", filename)
+        if node_id is not None:
+            url.replace("${node_id}", node_id)
+        if hostname is not None:
+            url.replace("${hostname}", hostname)
+
         if self.auth is not None:
             headers['Authorization'] = 'Basic ' + base64.b64encode(bytes(self.auth[0] + ':' + self.auth[1], 'utf-8')).decode('utf-8')
         try:
-            response = requests.request(self.method, self.url, headers=headers, data=json.dumps(message))
+            response = requests.request(self.method, url, headers=headers, data=json.dumps(message))
             return response.status_code == 200
         except Exception as e:
             print(e)

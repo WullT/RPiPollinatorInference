@@ -250,9 +250,9 @@ while True:
             if STORE_FILE:
                 generator.store_message(BASE_DIR, SAVE_CROPS)
             if TRANSMIT_MQTT:
-                mclient.publish(res_msg)
+                mclient.publish(res_msg, filename=generator.generate_filename(), node_id = parser.node_id, hostname=HOSTNAME)
             if TRANSMIT_HTTP:
-                hclient.send_message(res_msg)
+                hclient.send_message(res_msg, filename=generator.generate_filename(), node_id = parser.node_id, hostname=HOSTNAME)
 
     elif type(msg) == int:
         if msg == 0:  # no data available
