@@ -1,0 +1,7 @@
+numpy
+paho-mqtt
+pyzmq
+Pillow
+torch
+torchaudio
+torchvision
