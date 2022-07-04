@@ -21,15 +21,29 @@ cd ~/RPiPollinatorInference
 pip3 install -r requirements.txt
 ```
 
-Config file
+Edit config file
 ```sh
 cd ~/RPiPollinatorInference
 cp config_example.yaml config.yaml
 nano config.yaml
 ```
 
-## Configuration
+Start with
+```sh
+python3 main.py --config path/to/config.yaml # default ./config.yaml
+```
 
+Run as a service
+```sh
+sudo cp ~/RPiPollinatorInference/pollinatorinference.service /etc/systemd/system/pollinatorinference.service
+sudo systemctl daemon-reload
+sudo systemctl enable pollinatorinference.service
+sudo systemctl start pollinatorinference.service
+# and check the status with
+sudo systemctl status pollinatorinference.service
+```
+
+## Configuration
 
 ### Input (ZMQ)
 

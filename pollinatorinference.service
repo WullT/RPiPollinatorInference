@@ -1,0 +1,15 @@
+[Unit]
+Description=YOLOv5 Pollinator Inference Service
+Requires=network.target
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/RPiPollinatorInference
+ExecStart=/usr/bin/python3 /home/pi/RPiPollinatorInference/main.py
+Restart=always
+TimeoutSec=10
+
+[Install]
+WantedBy=multi-user.target
