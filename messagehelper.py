@@ -253,11 +253,11 @@ class MQTTClient:
         import paho.mqtt.publish as publish
         topic = self.topic
         if filename is not None:
-            topic.replace("${filename}", filename)
+            topic = topic.replace("${filename}", filename)
         if node_id is not None:
-            topic.replace("${node_id}", node_id)
+            topic = topic.replace("${node_id}", node_id)
         if hostname is not None:
-            topic.replace("${hostname}", hostname)
+            topic = topic.replace("${hostname}", hostname)
         log.info("Publishing to {} on topic: {}".format(self.host, topic))
         tls_config = None
         if self.use_tls:
@@ -294,11 +294,11 @@ class HTTPClient:
         headers = {'Content-type': 'application/json'}
         url = self.url
         if filename is not None:
-            url.replace("${filename}", filename)
+            url = url.replace('${filename}', filename)
         if node_id is not None:
-            url.replace("${node_id}", node_id)
+            url = url.replace("${node_id}", node_id)
         if hostname is not None:
-            url.replace("${hostname}", hostname)
+            url = url.replace("${hostname}", hostname)
         log.info("Sending results to {}".format(url))
 
         if self.auth is not None:
