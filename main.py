@@ -1,5 +1,4 @@
 import logging
-from platform import node
 import zmq
 import time
 import os
