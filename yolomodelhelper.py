@@ -23,7 +23,7 @@ class YoloModel:
         max_det=10,
     ):
         if yolov5_path is None:
-            model = torch.hub.load("ultralytics/yolov5", "custom", model_path)
+            self.model = torch.hub.load("ultralytics/yolov5", "custom", model_path)
         else:
             self.model = torch.hub.load(
                 yolov5_path, "custom", model_path, source="local"
