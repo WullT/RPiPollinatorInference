@@ -5,6 +5,8 @@ YOLOv5 inference on a Raspberry Pi 4 (64 Bit).
 
 The application requests preprocessed records from the [ZMQMessageQueue](https://github.com/WullT/ZMQMessageQueue).
 
+![diag](images/pollinatorinference_diagram.png)
+
 
 ## Installation
 
