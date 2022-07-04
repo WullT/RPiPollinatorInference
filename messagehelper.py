@@ -235,6 +235,13 @@ class MQTTClient:
         self.username = username
         self.password = password
         self.use_tls = use_tls
+        if self.username is not None and self.password is not None:
+            self.auth = {
+                "username": self.username,
+                "password": self.password,
+            }
+        else:
+            self.auth = None
 
     def publish(self, message):
         import paho.mqtt.publish as publish
@@ -253,7 +260,7 @@ class MQTTClient:
             self.topic,
             json.dumps(message),
             1,
-            auth={"username": self.username, "password": self.password},
+            auth=self.auth,
             hostname=self.host,
             port=self.port,
             tls=tls_config,
