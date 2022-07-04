@@ -1,4 +1,5 @@
 import logging
+from platform import node
 import zmq
 import time
 import os
@@ -74,7 +75,7 @@ def request_message(code, client):
         if (client.poll(ZMQ_REQ_TIMEOUT) & zmq.POLLIN) != 0:
             reply = client.recv_json()
 
-            logging.info("Server replied (%s)", type(reply))
+            # logging.info("Server replied (%s)", type(reply))
             return reply
         retries_left -= 1
         logging.warning("No response from server")
@@ -117,7 +118,13 @@ while True:
             generator = MessageGenerator()
             generator.set_timestamp(parser.timestamp)
             generator.set_node_id(parser.node_id)
-            parser.print_detections()
+            # parser.print_detections()
+            logging.info(
+                "Got data from {}, recorded at {}, contains {} flowers".format(
+                    parser.node_id, parser.timestamp, len(parser.num_detections)
+                )
+            )
+
             if parser.num_detections > 0:
                 model.reset_inference_times()
                 pollinator_index = 0
@@ -141,7 +148,7 @@ while True:
                     names = model.get_names()
 
                     pollinator_indexes = model.get_indexes()
-                    print("pollinator_indexes: {}".format(pollinator_indexes))
+                    # print("pollinator_indexes: {}".format(pollinator_indexes))
                     for detection in range(len(crops)):
                         idx = pollinator_index + pollinator_indexes[detection]
                         crop_image = Image.fromarray(crops[detection])
@@ -170,4 +177,5 @@ while True:
 
     elif type(msg) == int:
         if msg == 0:  # no data available
+            logging.info("No data available")
             time.sleep(2)

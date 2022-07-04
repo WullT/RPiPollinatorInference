@@ -5,6 +5,7 @@ from io import BytesIO
 import base64
 from dataclasses import dataclass
 import os
+import logging
 
 
 @dataclass
