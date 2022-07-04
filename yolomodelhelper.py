@@ -3,6 +3,8 @@ import time
 import os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+import logging
+logger = logging.getLogger("main")
 
 
 class YoloModel:
