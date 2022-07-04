@@ -4,8 +4,6 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import logging
-logging.getLogger("yolov5").setLevel(logging.WARNING)  # yolov5 logger
-logging.getLogger("yolov5").propagate = False
 
 
 class YoloModel:

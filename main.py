@@ -1,10 +1,16 @@
 import logging
-logging.basicConfig(
-    format="%(asctime)s %(levelname)-8s %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logging.getLogger().propagate=False
+import sys
+
+log = logging.getLogger(__name__)
+log.propagate = False
+log.setLevel(logging.INFO)
+handler = logging.StreamHandler(stream=sys.stdout)
+handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s"))
+log.addHandler(handler)
+
+logging.basicConfig(level=logging.INFO)
+
+
 import zmq
 import time
 import os
@@ -12,9 +18,6 @@ from PIL import Image
 import base64
 import yaml
 import argparse
-
-
-
 from yolomodelhelper import YoloModel
 from messagehelper import MessageParser, Flower, Pollinator, MessageGenerator
 
@@ -27,7 +30,7 @@ with open(args.config, "r") as stream:
     try:
         config = yaml.safe_load(stream)
     except yaml.YAMLError as exc:
-        print(exc)
+        log.error(exc)
         exit(1)
 
 
@@ -52,7 +55,7 @@ ZMQ_REQ_RETRIES = zmq_config.get("request_retries", 10)
 
 
 context = zmq.Context().instance()
-logging.info("Connecting to server…")
+log.info("Connecting to ZMQ server on tcp://{}:{}".format(ZMQ_HOST, ZMQ_PORT))
 client = context.socket(zmq.REQ)
 client.connect("tcp://{}:{}".format(ZMQ_HOST, ZMQ_PORT))
 
@@ -69,33 +72,35 @@ def request_message(code, client):
             0: no data available
             1: first message removed from queue
     """
-    logging.info("Sending request with code {}".format(code))
+    log.info("Sending request with code 1".format(code))
     client.send_json(code)
     retries_left = ZMQ_REQ_RETRIES
     while True:
         if (client.poll(ZMQ_REQ_TIMEOUT) & zmq.POLLIN) != 0:
             reply = client.recv_json()
 
-            # logging.info("Server replied (%s)", type(reply))
+            # print("Server replied (%s)", type(reply))
             return reply
         retries_left -= 1
-        logging.warning("No response from server")
+        log.warning("No response from server")
         client.setsockopt(zmq.LINGER, 0)
         client.close()
 
         if retries_left == 0:
-            logging.error("Server seems to be offline, abandoning")
+            log.error("Server seems to be offline, abandoning")
             exit(1)
-        logging.info("Reconnecting to server…")
+        log.info("Reconnecting to server…")
         # Create new connection
         client = context.socket(zmq.REQ)
         client.connect("tcp://{}:{}".format(ZMQ_HOST, ZMQ_PORT))
 
-        logging.info("Resending code {}".format(code))
+        log.info("Resending code {}".format(code))
         client.send_json(code)
 
 
 parser = MessageParser()
+
+
 
 model = YoloModel(
     WEIGHTS_PATH,
@@ -112,6 +117,8 @@ model = YoloModel(
 
 
 
+
+
 while True:
     msg = request_message(1, client)  # get first message, remove it from queue
     if type(msg) == dict:
@@ -121,7 +128,7 @@ while True:
             generator.set_timestamp(parser.timestamp)
             generator.set_node_id(parser.node_id)
             # parser.print_detections()
-            logging.info(
+            log.info(
                 "Got data from {}, recorded at {}, contains {} flowers".format(
                     parser.node_id, parser.timestamp, parser.num_detections
                 )
@@ -150,7 +157,7 @@ while True:
                     names = model.get_names()
 
                     pollinator_indexes = model.get_indexes()
-                    # print("pollinator_indexes: {}".format(pollinator_indexes))
+                    # log.info("pollinator_indexes: {}".format(pollinator_indexes))
                     for detection in range(len(crops)):
                         idx = pollinator_index + pollinator_indexes[detection]
                         crop_image = Image.fromarray(crops[detection])
@@ -171,13 +178,13 @@ while True:
                 model_meta = model.get_metadata()
                 generator.add_metadata(model_meta, "pollinator_inference")
                 generator.add_metadata(parser.get_metadata(), "flower_inference")
-                # print("Model metadata")
-                # print(json.dumps(model_meta, indent=4))
+                # log.info("Model metadata")
+                # log.info(json.dumps(model_meta, indent=4))
 
             res_msg = generator.generate_message()
             generator.store_message()
 
     elif type(msg) == int:
         if msg == 0:  # no data available
-            logging.info("No data available")
+            log.info("No data available")
             time.sleep(2)
