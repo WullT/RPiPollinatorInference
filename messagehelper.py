@@ -208,10 +208,10 @@ class MessageGenerator:
         )
         return filename
     
-    def _generate_save_path(self, format=".json"):
+    def _generate_save_path(self):
         date_dir = self.timestamp.strftime("%Y-%m-%d")
         time_dir = self.timestamp.strftime("%H")
-        return self.node_id+"/"+date_dir+"/"+time_dir+"/"+self._generate_filename(format=format)
+        return self.node_id+"/"+date_dir+"/"+time_dir+"/"
 
 
     def store_message(self, base_dir, save_crop=True):
@@ -222,6 +222,6 @@ class MessageGenerator:
         filepath = base_dir + self._generate_save_path()
         if not os.path.exists(filepath):
             os.makedirs(filepath)
-        with open(filepath, "w") as f:
+        with open(filepath+self._generate_filename(), "w") as f:
             json.dump(self.generate_message(save_crop=save_crop), f)
         return True
