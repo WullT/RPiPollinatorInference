@@ -95,6 +95,14 @@ The output file is in JSON format, images are base64-encoded.
 
 The filename consists of the node_id and the record date.
 
+
+if `output.ignore_empty_results` is set to true, results without detections will be ignored.
+
+```yaml
+output:
+  ignore_empty_results: false
+```
+
 #### File
 
 Store the result files locally.
@@ -109,7 +117,6 @@ output:
     store_file: true
     base_dir: output
     save_crops: true
-
 ```
 
 #### HTTP

@@ -18,6 +18,8 @@ zmq:
   request_retries: 5
 
 output:
+  ignore_empty_results: false
+
   file:
     store_file: true
     base_dir: output

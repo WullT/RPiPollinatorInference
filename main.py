@@ -45,7 +45,7 @@ with open(args.config, "r") as stream:
 HOSTNAME = socket.gethostname()
 if "ap-" in HOSTNAME:
     HOSTNAME = HOSTNAME.replace("ap-", "")
-
+# Model configuration
 model_config = config.get("model")
 WEIGHTS_PATH = model_config.get("weights_path")
 LOCAL_YOLOV5_PATH = model_config.get("local_yolov5_path")
@@ -58,18 +58,23 @@ MAX_DETECTIONS = model_config.get("max_detections", 10)
 CLASS_NAMES = model_config.get("class_names")
 AUGMENT = model_config.get("augment", False)
 
-
+# Input configuration (zmq)
 zmq_config = config.get("zmq")
 ZMQ_HOST = zmq_config.get("host")
 ZMQ_PORT = zmq_config.get("port")
 ZMQ_REQ_TIMEOUT = zmq_config.get("request_timeout", 3000)
 ZMQ_REQ_RETRIES = zmq_config.get("request_retries", 10)
 
+
+
+# Output configuration
+output_config = config.get("output")
+IGNORE_EMPTY_RESULTS = output_config.get("ignore_empty_results", False)
+
+# Output configuration (File)
 STORE_FILE = False
 BASE_DIR = "output"
 SAVE_CROPS = True
-
-output_config = config.get("output")
 if output_config.get("file") is not None:
     output_config_file = output_config.get("file")
     if output_config_file.get("store_file", False):
@@ -78,6 +83,7 @@ if output_config.get("file") is not None:
         SAVE_CROPS = output_config_file.get("save_crops", True)
         log.info("store_file is enabled, base_dir: {}".format(BASE_DIR))
 
+# Output configuration (MQTT)
 TRANSMIT_MQTT = False
 mclient = None
 if output_config.get("mqtt") is not None:
@@ -101,6 +107,7 @@ if output_config.get("mqtt") is not None:
             mqtt_host, mqtt_port, mqtt_topic, mqtt_username, mqtt_password, mqtt_use_tls
         )
 
+# Output configuration (HTTP)
 TRANSMIT_HTTP = False
 hclient = None
 if output_config.get("http") is not None:
@@ -243,9 +250,11 @@ while True:
             model_meta = model.get_metadata()
             generator.add_metadata(model_meta, "pollinator_inference")
             generator.add_metadata(parser.get_metadata(), "flower_inference")
-            # log.info("Model metadata")
-            # log.info(json.dumps(model_meta, indent=4))
 
+
+            if IGNORE_EMPTY_RESULTS and len(generator.pollinators) == 0:
+                log.info("No pollinators detected, skipping")
+                continue
             res_msg = generator.generate_message()
             if STORE_FILE:
                 generator.store_message(BASE_DIR, SAVE_CROPS)
