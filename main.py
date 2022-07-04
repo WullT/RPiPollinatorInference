@@ -4,7 +4,7 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-logging.getlogging().propagate=False
+logging.getLogger().propagate=False
 import zmq
 import time
 import os
