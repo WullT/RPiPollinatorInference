@@ -121,7 +121,7 @@ while True:
             # parser.print_detections()
             logging.info(
                 "Got data from {}, recorded at {}, contains {} flowers".format(
-                    parser.node_id, parser.timestamp, len(parser.num_detections)
+                    parser.node_id, parser.timestamp, parser.num_detections
                 )
             )
 
