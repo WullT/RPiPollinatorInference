@@ -10,14 +10,33 @@ model:
   multi_label_iou_threshold: 0.7
   augment: false
 
-output:
-  file:
-    store_file: true
-    base_dir: output
-    save_crops: true
 
 zmq:
   host: localhost
   port: 5557
   request_timeout: 3000
   request_retries: 5
+
+output:
+  file:
+    store_file: true
+    base_dir: output
+    save_crops: true
+
+  http:
+    transmit_http: true
+    url: http://localhost:8080/api/v1/pollinators
+    method: POST
+    username: admin
+    password: admin
+
+  mqtt:
+    transmit_mqtt: true
+    host: mqtt.example.com
+    port: 8883
+    username: mqtt_user
+    password: mqtt_password
+    topic: "results/${hostname}/json"
+    use_tls: true
+    
+

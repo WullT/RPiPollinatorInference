@@ -5,7 +5,9 @@ log = logging.getLogger(__name__)
 log.propagate = False
 log.setLevel(logging.INFO)
 handler = logging.StreamHandler(stream=sys.stdout)
-handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s"))
+handler.setFormatter(
+    logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s")
+)
 log.addHandler(handler)
 
 logging.basicConfig(level=logging.INFO)
@@ -19,8 +21,15 @@ import base64
 import yaml
 import argparse
 from yolomodelhelper import YoloModel
-from messagehelper import MessageParser, Flower, Pollinator, MessageGenerator
-
+from messagehelper import (
+    MessageParser,
+    Flower,
+    Pollinator,
+    MessageGenerator,
+    MQTTClient,
+    HTTPClient,
+)
+import socket
 
 parser = argparse.ArgumentParser(description="ZMQ Message Queue")
 parser.add_argument("--config", type=str, default="config.yaml", help="config file")
@@ -33,6 +42,9 @@ with open(args.config, "r") as stream:
         log.error(exc)
         exit(1)
 
+HOSTNAME = socket.gethostname()
+if "ap-" in HOSTNAME:
+    HOSTNAME = HOSTNAME.replace("ap-", "")
 
 model_config = config.get("model")
 WEIGHTS_PATH = model_config.get("weights_path")
@@ -56,15 +68,57 @@ ZMQ_REQ_RETRIES = zmq_config.get("request_retries", 10)
 STORE_FILE = False
 BASE_DIR = "output"
 SAVE_CROPS = True
+
 output_config = config.get("output")
 if output_config.get("file") is not None:
-    output_file_config = output_config.get("file")
-    if output_file_config.get("store_file",False):
+    output_config_file = output_config.get("file")
+    if output_config_file.get("store_file", False):
         STORE_FILE = True
-        BASE_DIR =  output_file_config.get("base_dir","output")
-        SAVE_CROPS = output_file_config.get("save_crops",True)
+        BASE_DIR = output_config_file.get("base_dir", "output")
+        SAVE_CROPS = output_config_file.get("save_crops", True)
+        log.info("store_file is enabled, base_dir: {}".format(BASE_DIR))
 
+TRANSMIT_MQTT = False
+mclient = None
+if output_config.get("mqtt") is not None:
+    output_config_mqtt = output_config.get("mqtt")
+    if output_config_mqtt.get("transmit_mqtt", False):
+        TRANSMIT_MQTT = True
+        log.info("Transmitting to MQTT")
+        mqtt_host = output_config_mqtt.get("host")
+        mqtt_port = output_config_mqtt.get("port")
+        mqtt_topic = output_config_mqtt.get("topic")
+        mqtt_topic = mqtt_topic.replace("${hostname}", HOSTNAME)
+        mqtt_username = output_config_mqtt.get("username")
+        mqtt_password = output_config_mqtt.get("password")
+        mqtt_use_tls = output_config_mqtt.get("use_tls", mqtt_port == 8883)
+        log.info(
+            "MQTT host: {}, port: {}, topic: {}, username {} use_tls: {}".format(
+                mqtt_host, mqtt_port, mqtt_topic, mqtt_username, mqtt_use_tls
+            )
+        )
+        mclient = MQTTClient(
+            mqtt_host, mqtt_port, mqtt_topic, mqtt_username, mqtt_password, mqtt_use_tls
+        )
 
+TRANSMIT_HTTP = False
+hclient = None
+if output_config.get("http") is not None:
+    output_config_http = output_config.get("http")
+    if output_config_http.get("transmit_http", False):
+        TRANSMIT_HTTP = True
+        log.info("Transmitting to HTTP")
+        http_url = output_config_http.get("url")
+        http_url = http_url.replace("${hostname}", HOSTNAME)
+        http_username = output_config_http.get("username")
+        http_password = output_config_http.get("password")
+        http_method = output_config_http.get("method", "POST")
+        log.info(
+            "HTTP url: {}, method: {}, username: {}".format(
+                http_url, http_method, http_username
+            )
+        )
+        hclient = HTTPClient(http_url, http_username, http_password, http_method)
 
 context = zmq.Context().instance()
 log.info("Connecting to ZMQ server on tcp://{}:{}".format(ZMQ_HOST, ZMQ_PORT))
@@ -113,7 +167,6 @@ def request_message(code, client):
 parser = MessageParser()
 
 
-
 model = YoloModel(
     WEIGHTS_PATH,
     LOCAL_YOLOV5_PATH,
@@ -126,9 +179,6 @@ model = YoloModel(
     augment=AUGMENT,
     max_det=MAX_DETECTIONS,
 )
-
-
-
 
 
 while True:
@@ -187,17 +237,22 @@ while True:
                         generator.add_pollinator(pollinator_obj)
                     if len(pollinator_indexes) > 0:
                         pollinator_index += max(pollinator_indexes) + 1
-            log.info("Inference times [total, avg]: {}".format(model.get_inference_times()))
+            log.info(
+                "Inference times [total, avg]: {}".format(model.get_inference_times())
+            )
             model_meta = model.get_metadata()
             generator.add_metadata(model_meta, "pollinator_inference")
             generator.add_metadata(parser.get_metadata(), "flower_inference")
-                # log.info("Model metadata")
-                # log.info(json.dumps(model_meta, indent=4))
+            # log.info("Model metadata")
+            # log.info(json.dumps(model_meta, indent=4))
 
             res_msg = generator.generate_message()
             if STORE_FILE:
-
                 generator.store_message(BASE_DIR, SAVE_CROPS)
+            if TRANSMIT_MQTT:
+                mclient.publish(res_msg)
+            if TRANSMIT_HTTP:
+                hclient.send_message(res_msg)
 
     elif type(msg) == int:
         if msg == 0:  # no data available

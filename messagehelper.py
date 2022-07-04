@@ -5,8 +5,10 @@ from io import BytesIO
 import base64
 from dataclasses import dataclass
 import os
-#import logging
 
+# import logging
+import ssl
+import requests
 
 @dataclass
 class Metadata:
@@ -54,7 +56,6 @@ class Pollinator:
             "score": self.score,
             "width": self.width,
             "height": self.height,
-            
         }
         if save_crop:
             bio = BytesIO()
@@ -207,12 +208,11 @@ class MessageGenerator:
             self.node_id + "_" + self.timestamp.strftime("%Y-%m-%dT%H-%M-%SZ") + format
         )
         return filename
-    
+
     def _generate_save_path(self):
         date_dir = self.timestamp.strftime("%Y-%m-%d")
         time_dir = self.timestamp.strftime("%H")
-        return self.node_id+"/"+date_dir+"/"+time_dir+"/"
-
+        return self.node_id + "/" + date_dir + "/" + time_dir + "/"
 
     def store_message(self, base_dir, save_crop=True):
         if not os.path.exists(base_dir):
@@ -222,6 +222,63 @@ class MessageGenerator:
         filepath = base_dir + self._generate_save_path()
         if not os.path.exists(filepath):
             os.makedirs(filepath)
-        with open(filepath+self._generate_filename(), "w") as f:
+        with open(filepath + self._generate_filename(), "w") as f:
             json.dump(self.generate_message(save_crop=save_crop), f)
         return True
+
+
+class MQTTClient:
+    def __init__(self, host, port, topic, username, password, use_tls):
+        import paho.mqtt.publish as publish
+
+        self.publish = publish
+        self.host = host
+        self.port = port
+        self.topic = topic
+        self.username = username
+        self.password = password
+        self.use_tls = use_tls
+
+    def publish(self, message):
+        tls_config = None
+        if self.use_tls:
+            tls_config = {
+                "certfile": None,
+                "keyfile": None,
+                "cert_reqs": ssl.CERT_REQUIRED,
+                "tls_version": ssl.PROTOCOL_TLSv1_2,
+                "ciphers": None,
+            }
+
+        self.publish.single(
+            self.topic,
+            json.dumps(message),
+            1,
+            auth={"username": self.username, "password": self.password},
+            hostname=self.host,
+            port=self.port,
+            tls=tls_config,
+        )
+
+class HTTPClient:
+    def __init__(self, url,username, password, method="POST"):
+        self.url = url
+        self.username = username
+        self.password = password
+        self.method = method
+        if self.username is not None and self.password is not None:
+            self.auth = (self.username, self.password)
+        else:
+            self.auth = None
+
+    def send_message(self, message):
+        headers = {'Content-type': 'application/json'}
+        if self.auth is not None:
+            headers['Authorization'] = 'Basic ' + base64.b64encode(bytes(self.auth[0] + ':' + self.auth[1], 'utf-8')).decode('utf-8')
+        try:
+            response = requests.request(self.method, self.url, headers=headers, data=json.dumps(message))
+            return response.status_code == 200
+        except Exception as e:
+            print(e)
+            return False
+            
