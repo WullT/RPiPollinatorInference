@@ -4,7 +4,7 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import logging
-logger = logging.getLogger("main")
+LOGGER = logging.getLogger("main")
 
 
 class YoloModel:
