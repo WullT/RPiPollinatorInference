@@ -175,6 +175,7 @@ while True:
                         generator.add_pollinator(pollinator_obj)
                     if len(pollinator_indexes) > 0:
                         pollinator_index += max(pollinator_indexes) + 1
+            log.info("Inference times [total, avg]: {}".format(model.get_inference_times()))
             model_meta = model.get_metadata()
             generator.add_metadata(model_meta, "pollinator_inference")
             generator.add_metadata(parser.get_metadata(), "flower_inference")
