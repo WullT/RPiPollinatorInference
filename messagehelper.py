@@ -5,18 +5,22 @@ from io import BytesIO
 import base64
 from dataclasses import dataclass
 import os
+import sys
 
-# import logging
+import logging
 import ssl
 import requests
 
-@dataclass
-class Metadata:
-    inference_time: float
-    confidence_threshold: float
-    iou_threshold: float
-    model_name: str
-    image_size: tuple
+log = logging.getLogger(__name__)
+log.propagate = False
+log.setLevel(logging.INFO)
+handler = logging.StreamHandler(stream=sys.stdout)
+handler.setFormatter(
+    logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s")
+)
+log.addHandler(handler)
+
+
 
 
 @dataclass
@@ -292,6 +296,7 @@ class HTTPClient:
             url.replace("${node_id}", node_id)
         if hostname is not None:
             url.replace("${hostname}", hostname)
+        log.info("Sending message to {}".format(self.url))
 
         if self.auth is not None:
             headers['Authorization'] = 'Basic ' + base64.b64encode(bytes(self.auth[0] + ':' + self.auth[1], 'utf-8')).decode('utf-8')
