@@ -4,7 +4,7 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-logging.getLogger().propagate=False
+logging.getlogging().propagate=False
 import zmq
 import time
 import os
@@ -52,7 +52,7 @@ ZMQ_REQ_RETRIES = zmq_config.get("request_retries", 10)
 
 
 context = zmq.Context().instance()
-logger.info("Connecting to server…")
+logging.info("Connecting to server…")
 client = context.socket(zmq.REQ)
 client.connect("tcp://{}:{}".format(ZMQ_HOST, ZMQ_PORT))
 
@@ -69,29 +69,29 @@ def request_message(code, client):
             0: no data available
             1: first message removed from queue
     """
-    logger.info("Sending request with code {}".format(code))
+    logging.info("Sending request with code {}".format(code))
     client.send_json(code)
     retries_left = ZMQ_REQ_RETRIES
     while True:
         if (client.poll(ZMQ_REQ_TIMEOUT) & zmq.POLLIN) != 0:
             reply = client.recv_json()
 
-            # logger.info("Server replied (%s)", type(reply))
+            # logging.info("Server replied (%s)", type(reply))
             return reply
         retries_left -= 1
-        logger.warning("No response from server")
+        logging.warning("No response from server")
         client.setsockopt(zmq.LINGER, 0)
         client.close()
 
         if retries_left == 0:
-            logger.error("Server seems to be offline, abandoning")
+            logging.error("Server seems to be offline, abandoning")
             exit(1)
-        logger.info("Reconnecting to server…")
+        logging.info("Reconnecting to server…")
         # Create new connection
         client = context.socket(zmq.REQ)
         client.connect("tcp://{}:{}".format(ZMQ_HOST, ZMQ_PORT))
 
-        logger.info("Resending code {}".format(code))
+        logging.info("Resending code {}".format(code))
         client.send_json(code)
 
 
@@ -121,7 +121,7 @@ while True:
             generator.set_timestamp(parser.timestamp)
             generator.set_node_id(parser.node_id)
             # parser.print_detections()
-            logger.info(
+            logging.info(
                 "Got data from {}, recorded at {}, contains {} flowers".format(
                     parser.node_id, parser.timestamp, parser.num_detections
                 )
@@ -179,5 +179,5 @@ while True:
 
     elif type(msg) == int:
         if msg == 0:  # no data available
-            logger.info("No data available")
+            logging.info("No data available")
             time.sleep(2)
