@@ -195,9 +195,9 @@ while True:
                     parser.node_id, parser.timestamp, parser.num_detections
                 )
             )
+            model.reset_inference_times()
 
             if parser.num_detections > 0:
-                model.reset_inference_times()
                 pollinator_index = 0
 
                 for flower_index in range(len(parser.images)):
