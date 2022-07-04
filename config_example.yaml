@@ -10,7 +10,11 @@ model:
   multi_label_iou_threshold: 0.7
   augment: false
 
-
+output:
+  file:
+    store_file: true
+    base_dir: output
+    save_crops: true
 
 zmq:
   host: localhost

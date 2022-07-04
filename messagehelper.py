@@ -45,21 +45,24 @@ class Pollinator:
     height: int
     crop: Image
 
-    def to_dict(self):
-        bio = BytesIO()
-        self.crop.save(bio, format="JPEG")
-        bio.seek(0)
-        encoded_image = base64.b64encode(bio.read()).decode("utf-8")
-        return {
+    def to_dict(self, save_crop=True):
+
+        pollintor_dict = {
             "index": self.index,
             "flower_index": self.flower_index,
             "class_name": self.class_name,
             "score": self.score,
             "width": self.width,
             "height": self.height,
-            "crop": encoded_image
-            # "crop": "will be here",
+            
         }
+        if save_crop:
+            bio = BytesIO()
+            self.crop.save(bio, format="JPEG")
+            bio.seek(0)
+            encoded_image = base64.b64encode(bio.read()).decode("utf-8")
+            pollintor_dict["crop"] = encoded_image
+        return pollintor_dict
 
 
 class MessageParser:
@@ -180,7 +183,7 @@ class MessageGenerator:
     def add_pollinator(self, pollinator: Pollinator):
         self.pollinators.append(pollinator)
 
-    def generate_message(self):
+    def generate_message(self, save_crop=True):
         flowers = []
         pollinators = []
         for flower in self.flowers:
@@ -204,13 +207,19 @@ class MessageGenerator:
             self.node_id + "_" + self.timestamp.strftime("%Y-%m-%dT%H-%M-%SZ") + format
         )
         return filename
+    
+    def _generate_save_path(self, format=".json"):
+        date_dir = self.timestamp.strftime("%Y-%m-%d")
+        time_dir = self.timestamp.strftime("%H")
+        return self.node_id+"/"+date_dir+"/"+time_dir+"/"+self._generate_filename(format=format)
 
-    def store_message(self, dir="out/"):
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        if not dir.endswith("/"):
-            dir += "/"
-        path = dir + self._generate_filename()
+
+    def store_message(self, base_dir, save_crop=True):
+        if not os.path.exists(base_dir):
+            os.makedirs(base_dir)
+        if not base_dir.endswith("/"):
+            base_dir += "/"
+        path = base_dir + self._generate_save_path()
         with open(path, "w") as f:
-            json.dump(self.generate_message(), f)
+            json.dump(self.generate_message(save_crop=save_crop), f)
         return True

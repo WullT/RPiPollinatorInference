@@ -53,6 +53,18 @@ ZMQ_PORT = zmq_config.get("port")
 ZMQ_REQ_TIMEOUT = zmq_config.get("request_timeout", 3000)
 ZMQ_REQ_RETRIES = zmq_config.get("request_retries", 10)
 
+STORE_FILE = False
+BASE_DIR = "output"
+SAVE_CROPS = True
+output_config = config.get("output")
+if output_config.get("file") is not None:
+    output_file_config = output_config.get("file")
+    if output_file_config.get("store_file",False):
+        STORE_FILE = True
+        BASE_DIR =  output_file_config.get("base_dir","output")
+        SAVE_CROPS = output_file_config.get("save_crops",True)
+
+
 
 context = zmq.Context().instance()
 log.info("Connecting to ZMQ server on tcp://{}:{}".format(ZMQ_HOST, ZMQ_PORT))
@@ -183,7 +195,9 @@ while True:
                 # log.info(json.dumps(model_meta, indent=4))
 
             res_msg = generator.generate_message()
-            generator.store_message()
+            if STORE_FILE:
+
+                generator.store_message(BASE_DIR, SAVE_CROPS)
 
     elif type(msg) == int:
         if msg == 0:  # no data available
