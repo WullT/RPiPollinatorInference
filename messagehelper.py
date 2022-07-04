@@ -229,9 +229,6 @@ class MessageGenerator:
 
 class MQTTClient:
     def __init__(self, host, port, topic, username, password, use_tls):
-        import paho.mqtt.publish as publish
-
-        self.publish = publish
         self.host = host
         self.port = port
         self.topic = topic
@@ -240,6 +237,8 @@ class MQTTClient:
         self.use_tls = use_tls
 
     def publish(self, message):
+        import paho.mqtt.publish as publish
+
         tls_config = None
         if self.use_tls:
             tls_config = {
@@ -250,7 +249,7 @@ class MQTTClient:
                 "ciphers": None,
             }
 
-        self.publish.single(
+        publish.single(
             self.topic,
             json.dumps(message),
             1,
@@ -281,4 +280,4 @@ class HTTPClient:
         except Exception as e:
             print(e)
             return False
-            
+
