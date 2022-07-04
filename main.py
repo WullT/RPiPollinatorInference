@@ -4,6 +4,7 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+logger = logging.getLogger("main")
 import zmq
 import time
 import os
@@ -51,7 +52,7 @@ ZMQ_REQ_RETRIES = zmq_config.get("request_retries", 10)
 
 
 context = zmq.Context().instance()
-logging.info("Connecting to server…")
+logger.info("Connecting to server…")
 client = context.socket(zmq.REQ)
 client.connect("tcp://{}:{}".format(ZMQ_HOST, ZMQ_PORT))
 
@@ -68,29 +69,29 @@ def request_message(code, client):
             0: no data available
             1: first message removed from queue
     """
-    logging.info("Sending request with code {}".format(code))
+    logger.info("Sending request with code {}".format(code))
     client.send_json(code)
     retries_left = ZMQ_REQ_RETRIES
     while True:
         if (client.poll(ZMQ_REQ_TIMEOUT) & zmq.POLLIN) != 0:
             reply = client.recv_json()
 
-            # logging.info("Server replied (%s)", type(reply))
+            # logger.info("Server replied (%s)", type(reply))
             return reply
         retries_left -= 1
-        logging.warning("No response from server")
+        logger.warning("No response from server")
         client.setsockopt(zmq.LINGER, 0)
         client.close()
 
         if retries_left == 0:
-            logging.error("Server seems to be offline, abandoning")
+            logger.error("Server seems to be offline, abandoning")
             exit(1)
-        logging.info("Reconnecting to server…")
+        logger.info("Reconnecting to server…")
         # Create new connection
         client = context.socket(zmq.REQ)
         client.connect("tcp://{}:{}".format(ZMQ_HOST, ZMQ_PORT))
 
-        logging.info("Resending code {}".format(code))
+        logger.info("Resending code {}".format(code))
         client.send_json(code)
 
 
@@ -110,6 +111,7 @@ model = YoloModel(
 )
 
 
+
 while True:
     msg = request_message(1, client)  # get first message, remove it from queue
     if type(msg) == dict:
@@ -119,7 +121,7 @@ while True:
             generator.set_timestamp(parser.timestamp)
             generator.set_node_id(parser.node_id)
             # parser.print_detections()
-            logging.info(
+            logger.info(
                 "Got data from {}, recorded at {}, contains {} flowers".format(
                     parser.node_id, parser.timestamp, parser.num_detections
                 )
@@ -177,5 +179,5 @@ while True:
 
     elif type(msg) == int:
         if msg == 0:  # no data available
-            logging.info("No data available")
+            logger.info("No data available")
             time.sleep(2)
