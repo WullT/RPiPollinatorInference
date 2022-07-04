@@ -175,9 +175,9 @@ while True:
                         generator.add_pollinator(pollinator_obj)
                     if len(pollinator_indexes) > 0:
                         pollinator_index += max(pollinator_indexes) + 1
-                model_meta = model.get_metadata()
-                generator.add_metadata(model_meta, "pollinator_inference")
-                generator.add_metadata(parser.get_metadata(), "flower_inference")
+            model_meta = model.get_metadata()
+            generator.add_metadata(model_meta, "pollinator_inference")
+            generator.add_metadata(parser.get_metadata(), "flower_inference")
                 # log.info("Model metadata")
                 # log.info(json.dumps(model_meta, indent=4))
 
@@ -187,4 +187,4 @@ while True:
     elif type(msg) == int:
         if msg == 0:  # no data available
             log.info("No data available")
-            time.sleep(2)
+            time.sleep(5)
