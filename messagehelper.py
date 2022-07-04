@@ -219,7 +219,9 @@ class MessageGenerator:
             os.makedirs(base_dir)
         if not base_dir.endswith("/"):
             base_dir += "/"
-        path = base_dir + self._generate_save_path()
-        with open(path, "w") as f:
+        filepath = base_dir + self._generate_save_path()
+        if not os.path.exists(filepath):
+            os.makedirs(filepath)
+        with open(filepath, "w") as f:
             json.dump(self.generate_message(save_crop=save_crop), f)
         return True
