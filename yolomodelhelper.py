@@ -10,7 +10,7 @@ class YoloModel:
     def __init__(
         self,
         model_path,
-        yolov5_path,
+        yolov5_path=None,
         confidence_threshold=0.25,
         iou_threshold=0.45,
         margin=40,
@@ -21,9 +21,13 @@ class YoloModel:
         amp=False,
         agnostic=False,
         max_det=10,
-
     ):
-        self.model = torch.hub.load(yolov5_path, "custom", model_path, source="local")
+        if yolov5_path is None:
+            model = torch.hub.load("ultralytics/yolov5", "custom", model_path)
+        else:
+            self.model = torch.hub.load(
+                yolov5_path, "custom", model_path, source="local"
+            )
         self.model_name = model_path.split("/")[-1]
         self.model.conf = confidence_threshold
         self.model.iou = iou_threshold
@@ -55,8 +59,6 @@ class YoloModel:
         metadata["average_inference_time"] = average_inference_time
         return metadata
 
-
-
     def reset_inference_times(self):
         self.total_inference_time = 0
         self.number_of_inferences = 0
@@ -67,7 +69,10 @@ class YoloModel:
         """
         if self.number_of_inferences == 0:
             return None, None
-        return self.total_inference_time, self.total_inference_time / self.number_of_inferences
+        return (
+            self.total_inference_time,
+            self.total_inference_time / self.number_of_inferences,
+        )
 
     def predict(self, input):
         t0 = time.time()
@@ -117,8 +122,8 @@ class YoloModel:
             overlapping = []
             for bb1 in range(len(boxes)):
                 overlapping_bb1 = []
-                for bb2 in range(bb1+1, len(boxes)):
-                #for bb2 in range( len(boxes)):
+                for bb2 in range(bb1 + 1, len(boxes)):
+                    # for bb2 in range( len(boxes)):
                     iou = self._compute_iou(boxes[bb1], boxes[bb2])
                     if iou > self.multi_label_iou_threshold:
                         overlapping_bb1.append(bb2)
@@ -126,7 +131,6 @@ class YoloModel:
             return self._get_overlapping_objects(overlapping)
         else:
             return [i for i in range(len(boxes))]
-
 
     def get_crops(self):
         res = self.results
@@ -161,9 +165,8 @@ class YoloModel:
                 crops.append(crop)
         return crops
 
-
     # https://stackoverflow.com/a/42874377
-    def _compute_iou(self,bb1, bb2):
+    def _compute_iou(self, bb1, bb2):
         """
         Calculate the Intersection over Union (IoU) of two bounding boxes.
 
@@ -212,8 +215,7 @@ class YoloModel:
         assert iou <= 1.0
         return iou
 
-
-    def _get_overlapping_objects(self,overlapping):
+    def _get_overlapping_objects(self, overlapping):
         """
         Get the overlapping objects from a list of overlapping objects.
         """
@@ -232,8 +234,7 @@ class YoloModel:
 
         return new_indexes
 
-
-    def _get_related_elements(self,list, index, known_elements=[]):
+    def _get_related_elements(self, list, index, known_elements=[]):
         elements = known_elements
         # if not index in elements:
         #    elements.append(index)
