@@ -31,9 +31,9 @@ from messagehelper import (
 )
 import socket
 
-parser = argparse.ArgumentParser(description="ZMQ Message Queue")
-parser.add_argument("--config", type=str, default="config.yaml", help="config file")
-args = parser.parse_args()
+argparser = argparse.ArgumentParser(description="ZMQ Message Queue")
+argparser.add_argument("--config", type=str, default="config.yaml", help="config file")
+args = argparser.parse_args()
 # parse yaml configuration file
 with open(args.config, "r") as stream:
     try:
@@ -237,9 +237,9 @@ while True:
                         generator.add_pollinator(pollinator_obj)
                     if len(pollinator_indexes) > 0:
                         pollinator_index += max(pollinator_indexes) + 1
-            log.info(
-                "Inference times [total, avg]: {}".format(model.get_inference_times())
-            )
+                log.info(
+                    "Inference times [total, avg]: {}".format(model.get_inference_times())
+                )
             model_meta = model.get_metadata()
             generator.add_metadata(model_meta, "pollinator_inference")
             generator.add_metadata(parser.get_metadata(), "flower_inference")
