@@ -68,7 +68,7 @@ def request_message(code, client):
             0: no data available
             1: first message removed from queue
     """
-    logging.info("Sending reques with code {}".format(code))
+    logging.info("Sending request with code {}".format(code))
     client.send_json(code)
     retries_left = ZMQ_REQ_RETRIES
     while True:
