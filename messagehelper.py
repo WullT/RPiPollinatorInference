@@ -226,8 +226,10 @@ class MessageGenerator:
         filepath = base_dir + self._generate_save_path()
         if not os.path.exists(filepath):
             os.makedirs(filepath)
+            log.info("Created directory: {}".format(filepath))
         with open(filepath + self.generate_filename(), "w") as f:
             json.dump(self.generate_message(save_crop=save_crop), f)
+        log.info("Saved message to: {}".format(filepath + self.generate_filename()))
         return True
 
 
@@ -256,6 +258,7 @@ class MQTTClient:
             topic.replace("${node_id}", node_id)
         if hostname is not None:
             topic.replace("${hostname}", hostname)
+        log.info("Publishing to {} on topic: {}".format(self.host, topic))
         tls_config = None
         if self.use_tls:
             tls_config = {
@@ -296,14 +299,19 @@ class HTTPClient:
             url.replace("${node_id}", node_id)
         if hostname is not None:
             url.replace("${hostname}", hostname)
-        log.info("Sending message to {}".format(self.url))
+        log.info("Sending results to {}".format(url))
 
         if self.auth is not None:
             headers['Authorization'] = 'Basic ' + base64.b64encode(bytes(self.auth[0] + ':' + self.auth[1], 'utf-8')).decode('utf-8')
         try:
             response = requests.request(self.method, url, headers=headers, data=json.dumps(message))
-            return response.status_code == 200
+            if response.status_code == 200:
+                log.info("Successfully sent results to {}".format(url))
+                return True
+            else:
+                log.error("Failed to send results to {}, status code is {}".format(url, response.status_code))
+                return False
         except Exception as e:
-            print(e)
+            log.error(e)
             return False
 
