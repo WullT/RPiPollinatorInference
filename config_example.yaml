@@ -9,6 +9,7 @@ model:
   multi_label: true
   multi_label_iou_threshold: 0.7
   augment: false
+  image_size: 640
 
 
 zmq:

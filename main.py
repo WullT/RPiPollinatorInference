@@ -57,6 +57,7 @@ MULTI_LABEL_IOU_THRESHOLD = model_config.get("multi_label_iou_threshold", 0.5)
 MAX_DETECTIONS = model_config.get("max_detections", 10)
 CLASS_NAMES = model_config.get("class_names")
 AUGMENT = model_config.get("augment", False)
+IMAGE_SIZE = model_config.get("image_size", 640)
 
 # Input configuration (zmq)
 zmq_config = config.get("zmq")
@@ -218,7 +219,7 @@ while True:
                         height=height,
                     )
                     generator.add_flower(flower_obj)
-                    res = model.predict(image)
+                    res = model.predict(image, IMAGE_SIZE)
                     crops = model.get_crops()
                     boxes = model.get_boxes()
                     classes = model.get_classes()

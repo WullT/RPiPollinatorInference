@@ -74,9 +74,9 @@ class YoloModel:
             self.total_inference_time / self.number_of_inferences,
         )
 
-    def predict(self, input):
+    def predict(self, input, model_img_size=640):
         t0 = time.time()
-        self.results = self.model.forward(input, augment=self.augment)
+        self.results = self.model.forward(input, augment=self.augment, size=model_img_size)
         self.total_inference_time += time.time() - t0
         self.number_of_inferences += 1
         return self.results
