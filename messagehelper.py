@@ -134,12 +134,12 @@ class MessageParser:
 
     def get_metadata(self):
         metadata = {}
-        metadata["inference_time"] = self.process_time
-        metadata["capture_time"] = self.download_time
+        metadata["total_inference_time"] = self.process_time
+        metadata["time_download"] = self.download_time
         metadata["confidence_threshold"] = self.conf_threshold
         metadata["iou_threshold"] = self.iou_threshold
         metadata["model_name"] = self.model_name
-        metadata["original_image_size"] = self.original_image_size
+        metadata["capture_size"] = self.original_image_size
         metadata["margin"] = self.margin
         return metadata
 

@@ -268,16 +268,16 @@ Sample output (trimmed)
             "average_inference_time": 1.074267029762268
         },
         "flower_inference": {
-            "inference_time": 3.0850534439086914,
-            "capture_time": 5.9546003341674805,
             "confidence_threshold": 0.2,
             "iou_threshold": 0.5,
-            "model_name": "flower.tflite",
-            "original_image_size": [
+            "margin": 20,
+            "model_name": "flowers_ds_v5_640_yolov5n_v0_cnv-fp16.tflite",
+            "total_inference_time": 1.5990180969238281,
+            "capture_size": [
                 4656,
                 3496
             ],
-            "margin": 30
+            "time_download": 2.8631110191345215
         }
     }
 }
