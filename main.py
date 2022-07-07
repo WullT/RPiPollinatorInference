@@ -249,9 +249,10 @@ while True:
                 log.info(
                     "Inference times [total, avg]: {}".format(model.get_inference_times())
                 )
-            model_meta = model.get_metadata()
-            generator.add_metadata(model_meta, "pollinator_inference")
-            generator.add_metadata(parser.get_metadata(), "flower_inference")
+            pollinator_inference_meta = model.get_metadata()
+            metadata = parser.get_metadata()
+            metadata["pollinator_inference"] = pollinator_inference_meta
+            generator.set_metadata(metadata)
 
 
             if IGNORE_EMPTY_RESULTS and len(generator.pollinators) == 0:

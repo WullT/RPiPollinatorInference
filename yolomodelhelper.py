@@ -55,8 +55,11 @@ class YoloModel:
         metadata["max_det"] = self.model.max_det
         metadata["augment"] = self.augment
         total_inference_time, average_inference_time = self.get_inference_times()
-        metadata["total_inference_time"] = total_inference_time
-        metadata["average_inference_time"] = average_inference_time
+        if total_inference_time is not None:
+            metadata["inference_times"] = [
+                round(total_inference_time, 3),
+                round(average_inference_time, 3),
+            ]
         return metadata
 
     def reset_inference_times(self):

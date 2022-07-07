@@ -20,7 +20,7 @@ handler.setFormatter(
 )
 log.addHandler(handler)
 
-
+DECIMALS_TO_ROUND = 3
 
 
 @dataclass
@@ -35,9 +35,8 @@ class Flower:
         return {
             "index": self.index,
             "class_name": self.class_name,
-            "score": self.score,
-            "width": self.width,
-            "height": self.height,
+            "score": round(float(self.score), DECIMALS_TO_ROUND),
+            "size": [self.width, self.height],
         }
 
 
@@ -57,9 +56,8 @@ class Pollinator:
             "index": self.index,
             "flower_index": self.flower_index,
             "class_name": self.class_name,
-            "score": self.score,
-            "width": self.width,
-            "height": self.height,
+            "score": round(self.score, DECIMALS_TO_ROUND),
+            "crop": None,
         }
         if save_crop:
             bio = BytesIO()
@@ -77,11 +75,13 @@ class MessageParser:
         self.images = []
         self.classes = []
         self.scores = []
-        self.process_time = None
-        self.download_time = None
+        self.inference_times = None
+        self.capture_duration = None
+        self.image_src = None
         self.original_image_size = None
         self.conf_threshold = None
         self.iou_threshold = None
+        self.max_det = None
         self.num_detections = 0
         self.margin = None
         self.model_name = None
@@ -93,21 +93,26 @@ class MessageParser:
             if not type(msg) is dict:
                 msg = json.loads(msg)
             self.msg = msg
-            meta = msg["metadata"]["flower_inference"]
+            meta = msg["metadata"]
             self.node_id = meta["node_id"]
-            self.timestamp = datetime.datetime.fromisoformat(meta["capture_time"])
-            self.process_time = meta["total_inference_time"]
-            self.download_time = meta["time_download"]
-            self.original_image_size = meta["capture_size"]
-            self.conf_threshold = meta["confidence_threshold"]
-            self.iou_threshold = meta["iou_threshold"]
-            self.margin = meta.get("margin", None)
-            self.model_name = meta.get("model_name", None)
-            for i in range(len(msg["detections"])):
-                self.classes.append(msg["detections"][i]["class_name"])
-                self.scores.append(msg["detections"][i]["score"])
-                self.images.append(self._load_image(msg["detections"][i]["crop"]))
-            self.num_detections = len(msg["detections"])
+            self.timestamp = datetime.datetime.fromisoformat(meta["capture_timestamp"])
+            original_image_meta = meta["original_image"]
+            self.original_image_size = original_image_meta["size"]
+            self.capture_duration = original_image_meta["capture_duration"]
+            self.image_src = original_image_meta["source"]
+            flower_inference_meta = meta["flower_inference"]
+
+            self.conf_threshold = flower_inference_meta["confidence_threshold"]
+            self.iou_threshold = flower_inference_meta["iou_threshold"]
+            self.margin = flower_inference_meta["margin"]
+            self.model_name = flower_inference_meta["model_name"]
+            self.max_det = flower_inference_meta["max_det"]
+            detections = msg["detections"]
+            for i in range(len(detections["flowers"])):
+                self.classes.append(detections["flowers"][i]["class_name"])
+                self.scores.append(detections["flowers"][i]["score"])
+                self.images.append(self._load_image(detections["flowers"][i]["crop"]))
+            self.num_detections = len(detections["flowers"])
             return True
         except Exception as e:
             print(e)
@@ -119,8 +124,8 @@ class MessageParser:
         self.images = []
         self.classes = []
         self.scores = []
-        self.process_time = None
-        self.download_time = None
+        self.inference_times = None
+        self.capture_duration = None
         self.original_image_size = None
         self.conf_threshold = None
         self.iou_threshold = None
@@ -134,20 +139,26 @@ class MessageParser:
 
     def get_metadata(self):
         metadata = {}
-        metadata["total_inference_time"] = self.process_time
-        metadata["time_download"] = self.download_time
-        metadata["confidence_threshold"] = self.conf_threshold
-        metadata["iou_threshold"] = self.iou_threshold
-        metadata["model_name"] = self.model_name
-        metadata["capture_size"] = self.original_image_size
-        metadata["margin"] = self.margin
+        metadata["node_id"] = self.node_id
+        metadata["capture_timestamp"] = self.timestamp.isoformat()
+        metadata["original_image"] = {}
+        metadata["original_image"]["size"] = self.original_image_size
+        metadata["original_image"]["capture_duration"] = self.capture_duration
+        metadata["original_image"]["source"] = self.image_src
+        metadata["flower_inference"] = {}
+        metadata["flower_inference"]["confidence_threshold"] = self.conf_threshold
+        metadata["flower_inference"]["iou_threshold"] = self.iou_threshold
+        metadata["flower_inference"]["margin"] = self.margin
+        metadata["flower_inference"]["model_name"] = self.model_name
+        metadata["flower_inference"]["max_det"] = self.max_det
+        metadata["flower_inference"]["inference_times"] = self.inference_times
         return metadata
 
     def print_detections(self):
         print("Node ID: {}".format(self.node_id))
         print("Timestamp: {}".format(self.timestamp))
-        print("Process time: {}".format(self.process_time))
-        print("Download time: {}".format(self.download_time))
+        print("Process time: {}".format(self.inference_times))
+        print("Download time: {}".format(self.capture_duration))
         print("Original image size: {}".format(self.original_image_size))
         print("Confidence threshold: {}".format(self.conf_threshold))
         print("IoU threshold: {}".format(self.iou_threshold))
@@ -182,6 +193,9 @@ class MessageGenerator:
     def add_metadata(self, metadata: dict, key: str):
         self.metadata[key] = metadata
 
+    def set_metadata(self, metadata: dict):
+        self.metadata = metadata
+
     def add_flower(self, flower: Flower):
         self.flowers.append(flower)
 
@@ -199,10 +213,7 @@ class MessageGenerator:
         pollinators.sort(key=lambda x: x["index"])
 
         message = {
-            "flowers": flowers,
-            "pollinators": pollinators,
-            "timestamp": str(self.timestamp),
-            "node_id": self.node_id,
+            "detections": {"flowers": flowers, "pollinators": pollinators},
             "metadata": self.metadata,
         }
         return message
@@ -251,6 +262,7 @@ class MQTTClient:
 
     def publish(self, message, filename=None, node_id=None, hostname=None):
         import paho.mqtt.publish as publish
+
         topic = self.topic
         if filename is not None:
             topic = topic.replace("${filename}", filename)
@@ -279,8 +291,9 @@ class MQTTClient:
             tls=tls_config,
         )
 
+
 class HTTPClient:
-    def __init__(self, url,username, password, method="POST"):
+    def __init__(self, url, username, password, method="POST"):
         self.url = url
         self.username = username
         self.password = password
@@ -291,10 +304,10 @@ class HTTPClient:
             self.auth = None
 
     def send_message(self, message, filename=None, node_id=None, hostname=None):
-        headers = {'Content-type': 'application/json'}
+        headers = {"Content-type": "application/json"}
         url = self.url
         if filename is not None:
-            url = url.replace('${filename}', filename)
+            url = url.replace("${filename}", filename)
         if node_id is not None:
             url = url.replace("${node_id}", node_id)
         if hostname is not None:
@@ -302,14 +315,22 @@ class HTTPClient:
         log.info("Sending results to {}".format(url))
 
         if self.auth is not None:
-            headers['Authorization'] = 'Basic ' + base64.b64encode(bytes(self.auth[0] + ':' + self.auth[1], 'utf-8')).decode('utf-8')
+            headers["Authorization"] = "Basic " + base64.b64encode(
+                bytes(self.auth[0] + ":" + self.auth[1], "utf-8")
+            ).decode("utf-8")
         try:
-            response = requests.request(self.method, url, headers=headers, data=json.dumps(message))
+            response = requests.request(
+                self.method, url, headers=headers, data=json.dumps(message)
+            )
             if response.status_code == 200:
                 log.info("Successfully sent results to {}".format(url))
                 return True
             else:
-                log.error("Failed to send results to {}, status code is {}".format(url, response.status_code))
+                log.error(
+                    "Failed to send results to {}, status code is {}".format(
+                        url, response.status_code
+                    )
+                )
                 return False
         except Exception as e:
             log.error(e)
