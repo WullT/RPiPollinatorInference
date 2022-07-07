@@ -30,6 +30,7 @@ from messagehelper import (
     HTTPClient,
 )
 import socket
+from tqdm import tqdm
 
 argparser = argparse.ArgumentParser(description="ZMQ Message Queue")
 argparser.add_argument("--config", type=str, default="config.yaml", help="config file")
@@ -208,7 +209,7 @@ while True:
             if parser.num_detections > 0:
                 pollinator_index = 0
 
-                for flower_index in range(len(parser.images)):
+                for flower_index in tqdm(range(len(parser.images))):
                     image = parser.images[flower_index]
                     width, height = image.size
                     flower_obj = Flower(
