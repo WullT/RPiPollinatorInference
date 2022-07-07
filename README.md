@@ -174,22 +174,28 @@ Sample imput (trimmed)
 {
     "detections": [
         {
-            "image": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDA...",
-            "class": "flockenblume",
-            "score": 0.9839507937431335
+            "class_name": "flockenblume",
+            "score": 0.9551437497138977,
+            "crop": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDA..."
         }
     ],
     "metadata": {
-        "time_download": 3.836057424545288,
-        "time_process": 2.9670543670654297,
-        "capture_size": [4656, 3496],
-        "conf_thres": 0.2,
-        "iou_thres": 0.5,
-        "node_id": "3200-5030",
-        "capture_time": "2022-07-04T16:40:08.920336",
-        "margin": 30,
-        "model_name": "flower.tflite"
-    }
+        "flower_inference": {
+            "confidence_threshold": 0.2,
+            "iou_threshold": 0.5,
+            "margin": 20,
+            "model_name": "flowers_ds_v5_640_yolov5n_v0_cnv-fp16.tflite",
+            "max_det": 25,
+            "total_inference_time": 1.624406337738037,
+            "capture_size": [
+                4656,
+                3496
+            ],
+            "time_download": 2.854959487915039,
+            "node_id": "3200-5030",
+            "capture_time": "2022-07-07 08:48:18.108219"
+        }
+    },
 }
 ```
 

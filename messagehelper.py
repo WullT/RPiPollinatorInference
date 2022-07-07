@@ -93,20 +93,20 @@ class MessageParser:
             if not type(msg) is dict:
                 msg = json.loads(msg)
             self.msg = msg
-            meta = msg["metadata"]
+            meta = msg["metadata"]["flower_inference"]
             self.node_id = meta["node_id"]
             self.timestamp = datetime.datetime.fromisoformat(meta["capture_time"])
-            self.process_time = meta["time_process"]
+            self.process_time = meta["total_inference_time"]
             self.download_time = meta["time_download"]
             self.original_image_size = meta["capture_size"]
-            self.conf_threshold = meta["conf_thres"]
-            self.iou_threshold = meta["iou_thres"]
+            self.conf_threshold = meta["confidence_threshold"]
+            self.iou_threshold = meta["iou_threshold"]
             self.margin = meta.get("margin", None)
             self.model_name = meta.get("model_name", None)
             for i in range(len(msg["detections"])):
-                self.classes.append(msg["detections"][i]["class"])
+                self.classes.append(msg["detections"][i]["class_name"])
                 self.scores.append(msg["detections"][i]["score"])
-                self.images.append(self._load_image(msg["detections"][i]["image"]))
+                self.images.append(self._load_image(msg["detections"][i]["crop"]))
             self.num_detections = len(msg["detections"])
             return True
         except Exception as e:
