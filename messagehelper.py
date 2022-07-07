@@ -107,6 +107,7 @@ class MessageParser:
             self.margin = flower_inference_meta["margin"]
             self.model_name = flower_inference_meta["model_name"]
             self.max_det = flower_inference_meta["max_det"]
+            self.inference_times = flower_inference_meta["inference_times"]
             detections = msg["detections"]
             for i in range(len(detections["flowers"])):
                 self.classes.append(detections["flowers"][i]["class_name"])
