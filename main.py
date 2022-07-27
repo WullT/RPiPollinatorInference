@@ -31,6 +31,7 @@ from messagehelper import (
 )
 import socket
 from tqdm import tqdm
+import datetime
 
 argparser = argparse.ArgumentParser(description="ZMQ Message Queue")
 argparser.add_argument("--config", type=str, default="config.yaml", help="config file")
@@ -42,6 +43,30 @@ with open(args.config, "r") as stream:
     except yaml.YAMLError as exc:
         log.error(exc)
         exit(1)
+
+logfilename = "/home/pi/logs/inference_monitoring_pollinator_only_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")+".csv"
+logfile = open(logfilename, "w")
+logfile.write("time,download,polli_start,num_images\n")
+logfile.close()
+
+def log_start_download():
+    logfile = open(logfilename, "a")
+    log_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + ",1,,\n"
+    logfile.write(log_str)
+    logfile.close()
+
+def log_inference_start():
+    logfile = open(logfilename, "a")
+    log_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + ",1,1,\n"
+    logfile.write(log_str)
+    logfile.close()
+
+
+def log_results(num_images):
+    logfile = open(logfilename, "a")
+    log_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + ",,1," + str(num_images) +  "\n"
+    logfile.write(log_str)
+    logfile.close()
 
 HOSTNAME = socket.gethostname()
 if "ap-" in HOSTNAME:
@@ -191,6 +216,7 @@ model = YoloModel(
 
 
 while True:
+    log_start_download()
     msg = request_message(1, client)  # get first message, remove it from queue
     if type(msg) == dict:
         message_ok = parser.parse_message(msg)
@@ -208,7 +234,7 @@ while True:
 
             if parser.num_detections > 0:
                 pollinator_index = 0
-
+                log_inference_start()
                 for flower_index in tqdm(range(len(parser.images))):
                     image = parser.images[flower_index]
                     width, height = image.size
@@ -249,6 +275,8 @@ while True:
                 log.info(
                     "Inference times [total, avg]: {}".format(model.get_inference_times())
                 )
+            log_results(num_images=len(parser.images))
+
             pollinator_inference_meta = model.get_metadata()
             metadata = parser.get_metadata()
             metadata["pollinator_inference"] = pollinator_inference_meta
@@ -269,4 +297,6 @@ while True:
     elif type(msg) == int:
         if msg == 0:  # no data available
             log.info("No data available")
+            log_inference_start()
+            log_results(num_images=0)
             time.sleep(5)
